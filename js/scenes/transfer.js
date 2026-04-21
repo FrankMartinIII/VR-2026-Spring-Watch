@@ -116,7 +116,7 @@ export const init = async model => {
 	       let s = S[n];
 	       let x =  (s.x - w/2 - 130) / (w/2);
 	       let y = -(s.y - h/2 + 150) / (w/2);
-	       if (y > .4)
+	       if (y < -1.2 || y > .4 || x < -1.2 || x > 1.2)
 	          shapes.add(s.type == 0 ? 'cube' : 'sphere')
 	                .move(0,.95,0)
 	                .scale(.13)
@@ -274,7 +274,7 @@ export const init = async model => {
 	       ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
 	    }
 
-	    // 2D CLIENT DRAWS THE CURSORS FOR THE TWO HANDS
+	    // 2D CLIENT DRAWS THE CURSORS FOR THE TWO VR HANDS
 
             ctx.strokeStyle = 'red';
             for (let id in P) {
