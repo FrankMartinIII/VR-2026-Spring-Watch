@@ -116,7 +116,7 @@ export const init = async model => {
 	       let s = S[n];
 	       let x =  (s.x - w/2 - 130) / (w/2);
 	       let y = -(s.y - h/2 + 150) / (w/2);
-	       if (y < -1.2 || y > .4 || x < -1.2 || x > 1.2)
+	       if (y < -1.1 || y > .4 || x < -1.2 || x > 1.2)
 	          shapes.add(s.type == 0 ? 'cube' : 'sphere')
 	                .move(0,.95,0)
 	                .scale(.13)
