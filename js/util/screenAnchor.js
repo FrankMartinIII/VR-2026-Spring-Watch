@@ -370,6 +370,15 @@ function _setupMaster(serverURL) {
       castCanvas:      null,   // <canvas> used to snapshot frames
       castCtx:         null,
       panel:           null,   // the control panel DOM root
+      // popup-panel refs (mirrors of the main panel, inside the ArUco popup window)
+      popupStatusEl:     null,
+      popupLockBtn:      null,
+      popupWidthSlider:  null,
+      popupWidthValue:   null,
+      popupHeightSlider: null,
+      popupHeightValue:  null,
+      popupFlSlider:     null,
+      popupFlValue:      null,
       statusEl:        null,   // status text element
       flSlider:        null,
       flValue:         null,
@@ -560,14 +569,142 @@ function _openCalibrationPopup(M) {
       '</span>';
    d.body.appendChild(hint);
 
+   _buildPopupPanel(M);
    _setStatus(M, 'Popup open. Click "Start Capture" to begin.', '#aaa');
 }
 
 function _closeCalibrationPopup(M) {
-   if (M.popup && !M.popup.closed) {
-      M.popup.close();
-   }
-   M.popup = null;
+   if (M.popup && !M.popup.closed) M.popup.close();
+   M.popup             = null;
+   M.popupStatusEl     = null;
+   M.popupLockBtn      = null;
+   M.popupWidthSlider  = null;
+   M.popupWidthValue   = null;
+   M.popupHeightSlider = null;
+   M.popupHeightValue  = null;
+   M.popupFlSlider     = null;
+   M.popupFlValue      = null;
+}
+
+// ── Mirror panel inside the ArUco popup ─────────────────────────────────────
+// Same controls as the main panel, positioned at the bottom-center of the
+// popup so the user can lock calibration without switching windows.
+// Event handlers run in the main window's closure and write directly to
+// anchorState, then sync both panels so values stay consistent.
+
+function _buildPopupPanel(M) {
+   const d = M.popup.document;
+   const panel = d.createElement('div');
+   panel.style.cssText = [
+      'position:fixed', 'bottom:20px', 'left:50%',
+      'transform:translateX(-50%)',
+      'width:380px', 'box-sizing:border-box',
+      'padding:14px 16px',
+      'background:rgba(15,15,15,0.94)', 'color:#ddd',
+      'font:13px/1.45 "Courier New", monospace',
+      'border:1px solid #0af', 'border-radius:6px',
+      'z-index:99999',
+   ].join(';');
+
+   panel.innerHTML = `
+      <div style="font-weight:bold;font-size:14px;color:#0af;margin-bottom:8px;">
+         screenAnchor — calibration
+      </div>
+      <div data-role="status" style="margin-bottom:12px;color:#aaa;font-size:12px;">
+         waiting…
+      </div>
+      <div style="margin-bottom:10px;">
+         <div style="display:flex;justify-content:space-between;">
+            <span>WIDTH</span>
+            <span data-role="widthValue">—</span>
+         </div>
+         <input type="range" data-role="widthSlider"
+                min="${SIZE_MIN_M}" max="${SIZE_MAX_M}" step="0.005"
+                style="width:100%;">
+      </div>
+      <div style="margin-bottom:14px;">
+         <div style="display:flex;justify-content:space-between;">
+            <span>HEIGHT</span>
+            <span data-role="heightValue">—</span>
+         </div>
+         <input type="range" data-role="heightSlider"
+                min="${SIZE_MIN_M}" max="${SIZE_MAX_M}" step="0.005"
+                style="width:100%;">
+      </div>
+      <div style="margin-bottom:6px;">
+         <div style="display:flex;justify-content:space-between;">
+            <span>FOCAL LENGTH</span>
+            <span data-role="flValue">—</span>
+         </div>
+         <input type="range" data-role="flSlider"
+                min="${FL_MIN}" max="${FL_MAX}" step="0.005"
+                style="width:100%;">
+      </div>
+      <div style="margin-top:14px;">
+         <button data-role="lock" disabled
+                 style="width:100%;padding:10px;font:13px monospace;
+                        background:#444;color:#888;border:0;border-radius:4px;
+                        cursor:not-allowed;font-weight:bold;">
+            🔒 Lock Calibration
+         </button>
+      </div>
+   `;
+
+   d.body.appendChild(panel);
+
+   M.popupStatusEl     = panel.querySelector('[data-role="status"]');
+   M.popupLockBtn      = panel.querySelector('[data-role="lock"]');
+   M.popupWidthSlider  = panel.querySelector('[data-role="widthSlider"]');
+   M.popupWidthValue   = panel.querySelector('[data-role="widthValue"]');
+   M.popupHeightSlider = panel.querySelector('[data-role="heightSlider"]');
+   M.popupHeightValue  = panel.querySelector('[data-role="heightValue"]');
+   M.popupFlSlider     = panel.querySelector('[data-role="flSlider"]');
+   M.popupFlValue      = panel.querySelector('[data-role="flValue"]');
+
+   M.popupWidthSlider .value = anchorState.width;
+   M.popupHeightSlider.value = anchorState.height;
+   M.popupFlSlider    .value = anchorState.fl;
+   _refreshPopupSliderLabels(M);
+
+   M.popupWidthSlider.addEventListener('input', () => {
+      anchorState.width = parseFloat(M.popupWidthSlider.value);
+      if (M.widthSlider) M.widthSlider.value = anchorState.width;
+      _refreshSliderLabels(M);
+      _refreshPopupSliderLabels(M);
+      _scheduleAutoSave(M);
+   });
+   M.popupHeightSlider.addEventListener('input', () => {
+      anchorState.height = parseFloat(M.popupHeightSlider.value);
+      if (M.heightSlider) M.heightSlider.value = anchorState.height;
+      _refreshSliderLabels(M);
+      _refreshPopupSliderLabels(M);
+      _scheduleAutoSave(M);
+   });
+   M.popupFlSlider.addEventListener('input', () => {
+      anchorState.fl  = parseFloat(M.popupFlSlider.value);
+      M.currentPreset = 'Custom';
+      if (M.flSlider) M.flSlider.value = anchorState.fl;
+      _refreshSliderLabels(M);
+      _refreshPopupSliderLabels(M);
+      _highlightActivePreset(M);
+      _scheduleAutoSave(M);
+   });
+
+   M.popupLockBtn.addEventListener('click', () => {
+      anchorState.lockCounter = (anchorState.lockCounter || 0) + 1;
+      if (typeof server !== 'undefined') server.broadcastGlobal('anchorState');
+      _setStatus(M, '🔒 Lock requested. Waiting for headset to solve…', '#0af');
+   });
+}
+
+function _refreshPopupSliderLabels(M) {
+   if (!M.popupWidthValue) return;
+   M.popupWidthValue .textContent =
+      `${anchorState.width .toFixed(3)} m  /  ${_metersToInches(anchorState.width ).toFixed(1)} in`;
+   M.popupHeightValue.textContent =
+      `${anchorState.height.toFixed(3)} m  /  ${_metersToInches(anchorState.height).toFixed(1)} in`;
+   M.popupFlValue    .textContent =
+      `${anchorState.fl    .toFixed(3)}      ${_flAsHfovString(anchorState.fl)}`;
 }
 
 // ── Control panel on the main page ──────────────────────────────────────────
@@ -768,6 +905,10 @@ function _setStatus(M, text, color = '#aaa') {
       M.statusEl.textContent = text;
       M.statusEl.style.color = color;
    }
+   if (M.popupStatusEl && M.popup && !M.popup.closed) {
+      M.popupStatusEl.textContent = text;
+      M.popupStatusEl.style.color = color;
+   }
 }
 
 // ── Cast capture and polling ─────────────────────────────────────────────────
@@ -876,16 +1017,20 @@ async function _pollOnce(M) {
 }
 
 function _setLockButtonEnabled(M, enabled) {
-   if (!M.lockBtn) return;
-   M.lockBtn.disabled = !enabled;
-   if (enabled) {
-      M.lockBtn.style.background = '#0f8';
-      M.lockBtn.style.color      = '#000';
-      M.lockBtn.style.cursor     = 'pointer';
-   } else {
-      M.lockBtn.style.background = '#444';
-      M.lockBtn.style.color      = '#888';
-      M.lockBtn.style.cursor     = 'not-allowed';
+   const btns = [M.lockBtn];
+   if (M.popupLockBtn && M.popup && !M.popup.closed) btns.push(M.popupLockBtn);
+   for (const btn of btns) {
+      if (!btn) continue;
+      btn.disabled = !enabled;
+      if (enabled) {
+         btn.style.background = '#0f8';
+         btn.style.color      = '#000';
+         btn.style.cursor     = 'pointer';
+      } else {
+         btn.style.background = '#444';
+         btn.style.color      = '#888';
+         btn.style.cursor     = 'not-allowed';
+      }
    }
 }
 
