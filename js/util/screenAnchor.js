@@ -495,6 +495,18 @@ function _openCalibrationPopup(M) {
    d.body.style.cssText = 'margin:0;padding:0;overflow:hidden;background:#fff;';
    d.title             = 'Screen Anchor Calibration';
 
+   // Force the popup to render at 100% browser zoom so marker positions
+   // match physical screen dimensions regardless of what Cmd+/- the user
+   // has applied. outerWidth/innerWidth gives zoom level reliably for
+   // popups (no tab-bar chrome overhead). We re-apply on every resize so
+   // Cmd+/- while the popup is open is also corrected automatically.
+   function _applyZoomFix() {
+      const z = M.popup.outerWidth / M.popup.innerWidth;
+      M.popup.document.documentElement.style.zoom = String(1 / z);
+   }
+   _applyZoomFix();
+   M.popup.addEventListener('resize', _applyZoomFix);
+
    // Compute the ArUco placement. The user-facing convention is simple:
    // WIDTH and HEIGHT in the sliders are the full window dimensions (what
    // they'd measure with a ruler against the popup's edges). The markers
