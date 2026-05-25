@@ -401,7 +401,6 @@ function _setupMaster(serverURL) {
          M.currentPreset      = cfg.flPreset || 'Custom';
       }
       _buildControlPanel(M);
-      _openCalibrationPopup(M);
    });
 
    // Keyboard: R recalibrates (clears the lock and reopens the popup).
@@ -940,6 +939,10 @@ async function _startCapture(M) {
 
          anchorState.frameW = video.videoWidth;
          anchorState.frameH = video.videoHeight;
+
+         // Open the ArUco popup now that the user has picked a stream —
+         // avoids forcing them to switch windows before sharing.
+         _openCalibrationPopup(M);
 
          _setStatus(M, `Capturing ${video.videoWidth}×${video.videoHeight}. Polling…`, '#0fa');
 
