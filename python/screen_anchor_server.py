@@ -230,9 +230,49 @@ class AnchorHandler(BaseHTTPRequestHandler):
         pass
 
 
+def _free_port(port: int) -> None:
+    """Kill any process already listening on *port*, then wait for it to release."""
+    import errno as _errno
+    import signal as _signal
+    import subprocess as _subprocess
+    import time as _time
+
+    try:
+        result = _subprocess.run(
+            ['lsof', '-ti', f':{port}'],
+            capture_output=True, text=True, timeout=3,
+        )
+        pids = [int(x) for x in result.stdout.split() if x.strip().isdigit()]
+        for pid in pids:
+            try:
+                os.kill(pid, _signal.SIGTERM)
+                print(f'[screen_anchor] stopped old instance (PID {pid})')
+            except ProcessLookupError:
+                pass
+        if pids:
+            _time.sleep(0.5)   # give the OS time to release the port
+    except Exception as exc:
+        print(f'[screen_anchor] warning: could not free port {port}: {exc}')
+
+
 if __name__ == '__main__':
-    port   = int(sys.argv[1]) if len(sys.argv) > 1 else 5050
-    server = ThreadingHTTPServer(('0.0.0.0', port), AnchorHandler)
+    import errno as _errno
+
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 5050
+
+    # Try to bind; if the port is already taken, kill the old instance and retry once.
+    server = None
+    for attempt in range(2):
+        try:
+            server = ThreadingHTTPServer(('0.0.0.0', port), AnchorHandler)
+            break
+        except OSError as exc:
+            if exc.errno == _errno.EADDRINUSE and attempt == 0:
+                print(f'[screen_anchor] port {port} in use — stopping old instance and retrying…')
+                _free_port(port)
+            else:
+                raise
+
     print(f'[screen_anchor] listening on http://localhost:{port}')
     print(f'[screen_anchor] config file: {CONFIG_PATH}')
     print('[screen_anchor] endpoints:')
