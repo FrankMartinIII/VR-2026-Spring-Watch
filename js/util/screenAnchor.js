@@ -98,6 +98,7 @@ window.anchorState = window.anchorState || {
 let _localMatrix         = null;
 let _lastRecalibSeenByHS = -1;
 let _lastLockSeenByHS    = 0;
+let _masterCaptureActive = false;  // true only after getDisplayMedia succeeds this session
 
 // ── Focal-length presets ─────────────────────────────────────────────────────
 // Empirically measured per cast source. Values not listed here default to
@@ -215,6 +216,13 @@ function _tick(isMaster) {
             // we allow calibrated:true to propagate normally.
             if (isMaster && !_localMatrix) {
                anchorState.calibrated = false;
+               // Don't let corners from a previous session appear as detected
+               // until this session has an active capture stream.
+               if (!_masterCaptureActive) {
+                  anchorState.corners = null;
+                  anchorState.frameW  = 0;
+                  anchorState.frameH  = 0;
+               }
             }
          }
          if (isMaster) {
@@ -927,6 +935,7 @@ function _setStatus(M, text, color = '#aaa') {
 async function _startCapture(M) {
    try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      _masterCaptureActive = true;
       const video  = document.createElement('video');
       video.srcObject = stream;
       video.play();
@@ -1055,7 +1064,8 @@ function _recalibrate(M) {
    anchorState.calibrated      = false;
    anchorState.corners         = null;
    anchorState.recalibCounter += 1;
-   _localMatrix = null;
+   _localMatrix         = null;
+   _masterCaptureActive = false;
    if (typeof server !== 'undefined') {
       server.broadcastGlobal('anchorState');
    }
