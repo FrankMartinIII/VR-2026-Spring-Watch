@@ -1,4 +1,5 @@
 import { Matrix, noise } from '../render/core/cg.js';
+import { Channel } from '../render/core/channel.js';
 
 async function getFile(file, callback) {
     try {
@@ -20,7 +21,7 @@ let replaceAtSigns = src => {
 }
 
 export const init = async model => {
-   let robot;
+   let robot, robot_data;
 
    window.I = [0,0,0,0,0, 0,0,0,0,0];
    window.cg = new Matrix();
@@ -39,13 +40,37 @@ export const init = async model => {
    window.cube = 'cube';
    window.tube = 'tubeZ';
 
+/*
+   // THE MORE EFFICIENT WEBRTC APPROACH IS NOT YET WORKING
+
+   let channel = new Channel(), id;
+   getFile('bici/projects/0423/src/webrtc_id.cg', id => channel.open(id));
+   channel.onReceive(msg => {
+      let data = msg.split(',');
+      for (let i = 0 ; i < data.length ; i++)
+         I[i] = parseInt(data[i]) / 100;
+   });
+*/
+
    model.animate(() => {
+
+      // GET MODEL FROM bici
+
       getFile('bici/projects/0423/src/robot.cg', text => robot = text);
 
       if (robot) {
          let fn = new Function(replaceAtSigns(robot));
-         for (let i = 0 ; i < 10 ; i++)
-            I[i] = 2 * noise(i + model.time, .5, .5);
+
+	 // GET MOVEMENT FROM bici
+
+         getFile('bici/projects/0423/src/robot_data.cg', text => robot_data = text);
+
+	 if (robot_data) {
+	    let data = robot_data.split(',');
+	    for (let i = 0 ; i < data.length ; i++)
+	       I[i] = parseInt(data[i]) / 100;
+         }
+
          while (model.nChildren() > 0)
             model.remove(0);
          cg.identity().move(0,1.5,0).scale(.5);
