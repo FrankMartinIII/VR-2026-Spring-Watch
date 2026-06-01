@@ -23,6 +23,8 @@ let replaceAtSigns = src => {
 export const init = async model => {
    let robot, robot_data;
 
+   //model.opacity(.7);
+
    window.I = [0,0,0,0,0, 0,0,0,0,0];
    window.cg = new Matrix();
    cg.draw = (shape, color) => {
@@ -52,6 +54,11 @@ export const init = async model => {
    });
 */
 
+   let I0 = [0,0,0,0,0, 0,0,0,0,0];
+   let dI = [0,0,0,0,0, 0,0,0,0,0];
+
+   let counter = 0, cI = 3;
+
    model.animate(() => {
 
       // GET MODEL FROM bici
@@ -67,13 +74,13 @@ export const init = async model => {
 
 	 if (robot_data) {
 	    let data = robot_data.split(',');
-	    for (let i = 0 ; i < data.length ; i++)
-	       I[i] = parseInt(data[i]) / 100;
+	    for (let i = 0 ; i < 3 ; i++)
+	       I[i] = 2 * parseInt(data[i]) / 100 - 1;
          }
 
          while (model.nChildren() > 0)
             model.remove(0);
-         cg.identity().move(0,1.5,0).scale(.5);
+         cg.identity().move(0,1.5,0).scale(.3);
          fn();
       }
    });
