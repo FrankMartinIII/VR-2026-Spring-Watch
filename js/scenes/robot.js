@@ -23,12 +23,10 @@ let replaceAtSigns = src => {
 export const init = async model => {
    let robot, robot_data;
 
-   //model.opacity(.7);
-
    window.I = [0,0,0,0,0, 0,0,0,0,0];
    window.cg = new Matrix();
    cg.draw = (shape, color) => {
-      model.add(shape).setMatrix(cg.getValue()).color(color);
+      model.add(shape).setMatrix(cg.getValue()).scale(1,1,zsgn).color(color);
       return cg;
    }
    cg.move     = cg.translate;
@@ -41,6 +39,7 @@ export const init = async model => {
    window.ball = 'sphere';
    window.cube = 'cube';
    window.tube = 'tubeZ';
+   window.zsgn = clientID == clients[0] ? 1 : -1;
 
 /*
    // THE MORE EFFICIENT WEBRTC APPROACH IS NOT YET WORKING
@@ -80,7 +79,7 @@ export const init = async model => {
 
          while (model.nChildren() > 0)
             model.remove(0);
-         cg.identity().move(0,1.5,0).scale(.3);
+         cg.identity().move(0,1.5,0).scale(.3,.3,.3*window.zsgn);
          fn();
       }
    });
