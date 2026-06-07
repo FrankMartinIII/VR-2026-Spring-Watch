@@ -41,6 +41,8 @@ export default () => {
          { name: "arrange2"     , path: "./arrange2.js"     , public: true },
          { name: "widgets"      , path: "./widgets.js"      , public: true },
          { name: "transfer"     , path: "./transfer.js"     , public: true },
+         { name: "watchTest"     , path: "./watchTest.js"     , public: true },
+         { name: "watchTest2"     , path: "./watchTest2.js"     , public: true },
       ]
    };
 }
