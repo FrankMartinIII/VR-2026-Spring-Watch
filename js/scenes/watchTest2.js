@@ -99,8 +99,8 @@ export const init = async model => {
                            "g.setFont('Vector', 20);\n" +
                            "g.drawString('Touching box', g.getWidth()/2, g.getHeight()/2);\n" +
                            "Bangle.setLCDPower(1);\n" +
-                           "clearInterval(counterInterval);\n" +
-                           "let counterInterval = setInterval(makeWatchBuzz, 100);\n";
+                           "clearInterval(global.counterInterval);\n" +
+                           "global.counterInterval = setInterval(makeWatchBuzz, 100);\n";
                Puck.write(command);
                wasInside = true;
             }
@@ -113,8 +113,8 @@ export const init = async model => {
                let exitCommand = 
                            "\x10" +
                            "g.clear(1);\n" +
-                           "clearInterval(counterInterval);\n" +
-                           "Bangle.setLCDPower(1);\n" +
+                           "clearInterval(global.counterInterval);\n" +
+                           "Bangle.setLCDPower(0);\n" +
                            "g.drawString('Not touching box', g.getWidth()/2, g.getHeight()/2);\n"
                Puck.write(exitCommand);
                wasInside = false;
